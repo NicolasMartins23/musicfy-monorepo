@@ -1,0 +1,23 @@
+{
+  "name": "musicfy-api",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "API do Musicfy App",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node --watch --env-file=.env index.js",
+    "start": "node --env-file-if-exists=.env index.js",
+    "build": "node --check app.js && node --check index.js && node --check netlify/functions/api.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.11",
+    "hono": "^4.12.9",
+    "mysql2": "^3.22.4"
+  }
+}
