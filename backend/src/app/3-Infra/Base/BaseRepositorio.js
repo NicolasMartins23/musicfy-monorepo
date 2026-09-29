@@ -1,24 +1,26 @@
 import mysql from "mysql2/promise";
 
-const useSsl = process.env.DB_SSL === "true";
+const connectionString = process.env.DATABASE_URL;
 
-const pool = mysql.createPool({
-    host: process.env.DB_HOST || "localhost",
-    port: parseInt(process.env.DB_PORT || "3306", 10),
-    user: process.env.DB_USER || "root",
-    password: process.env.DB_PASSWORD || "",
-    database: process.env.DB_NAME || "musicfy",
-    waitForConnections: true,
-    connectionLimit: Number(process.env.DB_CONNECTION_LIMIT ?? 2),
-    queueLimit: 0,
-    connectTimeout: Number(process.env.DB_CONNECT_TIMEOUT ?? 10000),
-    enableKeepAlive: true,
-    ssl: useSsl
-        ? {
-            rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false"
-        }
-        : undefined,
-});
+const pool = connectionString
+    ? mysql.createPool(connectionString)
+    : mysql.createPool({
+        host: process.env.DB_HOST || "localhost",
+        port: parseInt(process.env.DB_PORT || "3306", 10),
+        user: process.env.DB_USER || "root",
+        password: process.env.DB_PASSWORD || "",
+        database: process.env.DB_NAME || "musicfy",
+        waitForConnections: true,
+        connectionLimit: Number(process.env.DB_CONNECTION_LIMIT ?? 2),
+        queueLimit: 0,
+        connectTimeout: Number(process.env.DB_CONNECT_TIMEOUT ?? 10000),
+        enableKeepAlive: true,
+        ssl: process.env.DB_SSL === "true"
+            ? {
+                rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false"
+            }
+            : undefined,
+    });
 
 export class BaseRepositorio {
     constructor() {
@@ -58,11 +60,9 @@ export class BaseRepositorio {
                 if (Array.isArray(valor) && valor.length > 0) {
                     const placeholders = valor.map(() => "?").join(", ");
                     conditions.push(`${expressao} (${placeholders})`);
-                    
                     valor.forEach(val => values.push(val));
                 }
-            } 
-            else {
+            } else {
                 conditions.push(`${expressao} ?`);
                 values.push(valor);
             }
