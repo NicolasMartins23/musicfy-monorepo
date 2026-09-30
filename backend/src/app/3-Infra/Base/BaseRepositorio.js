@@ -1,6 +1,18 @@
+
+import fs from "node:fs";
 import mysql from "mysql2/promise";
 
-const connectionString = process.env.DATABASE_URL;
+function getConnectionString() {
+    const file = process.env.DATABASE_CONNECTION_STRING_FILE;
+
+    if (file) {
+        return fs.readFileSync(file, "utf8").trim();
+    }
+
+    return process.env.DATABASE_CONNECTION_STRING || null;
+}
+
+const connectionString = getConnectionString();
 
 const pool = connectionString
     ? mysql.createPool(connectionString)
@@ -17,7 +29,8 @@ const pool = connectionString
         enableKeepAlive: true,
         ssl: process.env.DB_SSL === "true"
             ? {
-                rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false"
+                rejectUnauthorized:
+                    process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false"
             }
             : undefined,
     });
@@ -28,11 +41,12 @@ export class BaseRepositorio {
     }
 
     async query(sql, params = []) {
-        const env = process.env.ENVIRONMENT || "dev";
-
-        if (env === "dev") {
-            const formattedSql = mysql.format(sql, params);
-            console.log("\n[SQL COMMAND]:", formattedSql, "\n");
+        if ((process.env.ENVIRONMENT || "dev") === "dev") {
+            console.log(
+                "\n[SQL COMMAND]:",
+                mysql.format(sql, params),
+                "\n"
+            );
         }
 
         return await this.db.execute(sql, params);
@@ -42,7 +56,10 @@ export class BaseRepositorio {
         try {
             return await callback();
         } catch (error) {
-            console.error("Erro na operação de banco de dados:", error.message);
+            console.error(
+                "Erro na operação de banco de dados:",
+                error.message
+            );
             throw error;
         }
     }
@@ -54,22 +71,26 @@ export class BaseRepositorio {
         Object.keys(configuracaoFiltros).forEach(expressao => {
             const valor = configuracaoFiltros[expressao];
 
-            if (valor === undefined || valor === null || valor === "") return;
+            if (valor === undefined || valor === null || valor === "") {
+                return;
+            }
 
             if (expressao.trim().toUpperCase().endsWith("IN")) {
                 if (Array.isArray(valor) && valor.length > 0) {
                     const placeholders = valor.map(() => "?").join(", ");
-                    conditions.push(`${expressao} (${placeholders})`);
+                    conditions.push(expressao + " (" + placeholders + ")");
                     valor.forEach(val => values.push(val));
                 }
             } else {
-                conditions.push(`${expressao} ?`);
+                conditions.push(expressao + " ?");
                 values.push(valor);
             }
         });
 
         return {
-            whereStr: conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '',
+            whereStr: conditions.length
+                ? " WHERE " + conditions.join(" AND ")
+                : "",
             params: values
         };
     }
